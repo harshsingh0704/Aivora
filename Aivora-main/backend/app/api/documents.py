@@ -1,0 +1,94 @@
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.auth import require_tenant_access
+from app.core.database import get_db
+from app.models.document import Document
+from app.services.business_service import get_business
+from app.services.document_service import ingest_document, search_documents, delete_document_vectors
+
+router = APIRouter(prefix="/documents", tags=["documents"])
+
+
+@router.get("/")
+async def list_documents(request: Request, business_id: int = 1, db: AsyncSession = Depends(get_db)):
+    require_tenant_access(request, business_id)
+    result = await db.execute(
+        select(Document)
+        .where(Document.business_id == business_id)
+        .order_by(Document.created_at.desc())
+    )
+    docs = result.scalars().all()
+    return [
+        {
+            "id": d.id,
+            "filename": d.filename,
+            "chunk_count": d.chunk_count,
+            "status": d.status,
+            "created_at": d.created_at.isoformat(),
+        }
+        for d in docs
+    ]
+
+
+@router.delete("/{doc_id}")
+async def delete_document(doc_id: int, request: Request, business_id: int = 1, db: AsyncSession = Depends(get_db)):
+    require_tenant_access(request, business_id)
+    doc = await db.get(Document, doc_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    if doc.business_id != business_id:
+        raise HTTPException(status_code=403, detail="Document belongs to another tenant")
+    config = await get_business(db, business_id)
+    collection = config.get("qdrant_collection")
+    await delete_document_vectors(doc_id, collection, chunk_count=doc.chunk_count or 500)
+    await db.delete(doc)
+    await db.commit()
+    return {"ok": True}
+
+
+@router.post("/upload")
+async def upload_document(
+    request: Request,
+    file: UploadFile = File(...),
+    business_id: int = 1,
+    db: AsyncSession = Depends(get_db),
+):
+    require_tenant_access(request, business_id)
+    if not file.filename.endswith((".txt", ".md")):
+        raise HTTPException(status_code=400, detail="Only .txt and .md files are supported")
+
+    content = await file.read()
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=400, detail="File must be UTF-8 encoded text")
+
+    if not text.strip():
+        raise HTTPException(status_code=400, detail="File is empty")
+
+    config = await get_business(db, business_id)
+    collection = config.get("qdrant_collection")
+
+    doc = Document(filename=file.filename, content=text, status="processing", business_id=business_id)
+    db.add(doc)
+    await db.flush()
+
+    chunk_count = await ingest_document(doc.id, file.filename, text, collection)
+
+    doc.chunk_count = chunk_count
+    doc.status = "ready"
+
+    return {"id": doc.id, "filename": file.filename, "chunks": chunk_count, "status": "ready"}
+
+
+@router.get("/search")
+async def search(request: Request, q: str, limit: int = 5, business_id: int = 1, db: AsyncSession = Depends(get_db)):
+    require_tenant_access(request, business_id)
+    if not q.strip():
+        raise HTTPException(status_code=400, detail="Query cannot be empty")
+    config = await get_business(db, business_id)
+    collection = config.get("qdrant_collection")
+    results = await search_documents(q, limit, collection)
+    return results

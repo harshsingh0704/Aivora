@@ -1,0 +1,54 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNDAgNDAiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSIxMCIgZmlsbD0iIzBkMGYxNCIgLz4KICA8cmVjdCB4PSIxMSIgeT0iMTQiIHdpZHRoPSI0LjUiIGhlaWdodD0iMTIiIHJ4PSIyLjI1IiBmaWxsPSIjMTBiOTgxIiAvPgogIDxyZWN0IHg9IjE3Ljc1IiB5PSI5IiB3aWR0aD0iNC41IiBoZWlnaHQ9IjIyIiByeD0iMi4yNSIgZmlsbD0iIzEwYjk4MSIgLz4KICA8cmVjdCB4PSIyNC41IiB5PSIxNCIgd2lkdGg9IjQuNSIgaGVpZ2h0PSIxMiIgcng9IjIuMjUiIGZpbGw9IiMxMGI5ODEiIC8+Cjwvc3ZnPgo=" type="image/svg+xml" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cleo — Sign In</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>* { font-family: 'Inter', sans-serif; } body { background: #0c0c0c; }</style>
+</head>
+<body class="min-h-screen flex items-center justify-center">
+  <div class="w-full max-w-sm px-6">
+
+    <div class="flex items-center gap-3 justify-center mb-10">
+      <svg viewBox="0 0 40 40" width="36" height="36" fill="none"><rect width="40" height="40" rx="10" fill="#0d0f14"/><rect x="11" y="14" width="4.5" height="12" rx="2.25" fill="#10b981"/><rect x="17.75" y="9" width="4.5" height="22" rx="2.25" fill="#10b981"/><rect x="24.5" y="14" width="4.5" height="12" rx="2.25" fill="#10b981"/></svg>
+      <span class="text-white font-semibold text-lg">Cleo</span>
+    </div>
+
+    <div style="background:#161616;border:1px solid #222" class="rounded-2xl p-8">
+      <h1 class="text-white font-semibold text-lg mb-1">Sign in</h1>
+      <p class="text-sm mb-6" style="color:#555">Enter your dashboard password to continue</p>
+
+      <form method="POST" action="/auth/login">
+        <div class="mb-4">
+          <label class="block text-xs mb-1.5" style="color:#555">Password</label>
+          <input
+            type="password"
+            name="password"
+            autofocus
+            class="w-full rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none transition"
+            style="background:#111;border:1px solid #2a2a2a;"
+            onfocus="this.style.borderColor='#10b981'"
+            onblur="this.style.borderColor='#2a2a2a'"
+          />
+        </div>
+
+        <div id="error" class="hidden mb-4 text-xs text-red-400">Incorrect password. Try again.</div>
+
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2.5 rounded-lg text-sm transition">
+          Sign in
+        </button>
+      </form>
+    </div>
+
+  </div>
+
+  <script>
+    if (window.location.search.includes('error=1')) {
+      document.getElementById('error').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
